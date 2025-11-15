@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Honeytoken Dashboard</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      margin: 0;
+      padding: 1.5rem;
+      background: #111827;
+      color: #e5e7eb;
+    }
+    h1 {
+      margin-top: 0;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 2fr 3fr;
+      gap: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .card {
+      background: #1f2937;
+      border-radius: 0.75rem;
+      padding: 1rem 1.25rem;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+    }
+    .label {
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #9ca3af;
+    }
+    .big {
+      font-size: 2.2rem;
+      font-weight: 700;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+    th, td {
+      padding: 0.4rem 0.5rem;
+      border-bottom: 1px solid #374151;
+      text-align: left;
+      white-space: nowrap;
+    }
+    th {
+      background: #111827;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+    tbody tr:nth-child(even) {
+      background: #111827;
+    }
+    .actor {
+      font-weight: 600;
+    }
+    .badge {
+      display: inline-block;
+      padding: 0.2rem 0.45rem;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      background: #111827;
+    }
+    .badge-http { color: #f97316; }
+    .badge-db { color: #22c55e; }
+    .buttons button {
+      margin-right: 0.5rem;
+      margin-bottom: 0.5rem;
+      padding: 0.4rem 0.75rem;
+      border-radius: 999px;
+      border: none;
+      cursor: pointer;
+      font-size: 0.85rem;
+      background: #2563eb;
+      color: #e5e7eb;
+    }
+    .buttons button.secondary {
+      background: #4b5563;
+    }
+    .buttons button:disabled {
+      opacity: 0.6;
+      cursor: default;
+    }
+    .small {
+      font-size: 0.8rem;
+      color: #9ca3af;
+      margin-top: 0.25rem;
+    }
+    .scroll {
+      max-height: 380px;
+      overflow: auto;
+    }
+  </style>
+</head>
+<body>
+  <h1>Honeytoken Dashboard</h1>
+
+  <div class="grid">
+    <div class="card">
+      <div class="label">Total Honeytoken Alerts</div>
+      <div id="totalAlerts" class="big">–</div>
+
+      <div style="margin-top:1rem" class="label">Alerts by Actor</div>
+      <ul id="actorList" style="list-style:none; padding-left:0; margin-top:0.4rem; font-size:0.85rem;"></ul>
+    </div>
+
+    <div class="card">
+      <div class="label">Demo Controls</div>
+      <div class="buttons" style="margin-top:0.5rem;">
+        <button onclick="simulateRead()">Simulate Decoy SELECT</button>
+        <button onclick="simulateWrite()">Simulate Decoy INSERT</button>
+        <button class="secondary" onclick="simulateHidden()">Hit Hidden Admin Endpoint</button>
+      </div>
+      <div class="small">
+        These buttons call your API endpoints with fake actors
+        (<code>curious_attacker</code>, <code>evil_actor</code>, <code>attacker</code>)
+        so you can generate alerts during a demo.
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="label">Recent Alerts (latest first)</div>
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Actor</th>
+            <th>Resource</th>
+            <th>Action</th>
+            <th>Client IP</th>
+            <th>Time</th>
+          </tr>
+        </thead>
+        <tbody id="alertTableBody">
+        </tbody>
+      </table>
+    </div>
+    <div class="small" id="lastRefreshed"></div>
+  </div>
+
+  <script>
+    const alertBody = document.getElementById('alertTableBody');
+    const totalAlertsEl = document.getElementById('totalAlerts');
+    const actorListEl = document.getElementById('actorList');
+    const lastRefreshedEl = document.getElementById('lastRefreshed');
+
+    async function fetchJSON(url, options) {
+      const res = await fetch(url, options);
+      if (!res.ok) throw new Error(await res.text());
+      return res.json();
+    }
+
+    async function loadAlerts() {
+      try {
+        const data = await fetchJSON('/api/alerts');
+        alertBody.innerHTML = '';
+        for (const row of data) {
+          const tr = document.createElement('tr');
+
+          const isHttp = row.action && row.action.startsWith('HTTP');
+          const badgeClass = isHttp ? 'badge badge-http' : 'badge badge-db';
+
+          tr.innerHTML = `
+            <td>${row.alert_id}</td>
+            <td class="actor">${row.actor || ''}</td>
+            <td>${row.resource || ''}</td>
+            <td><span class="${badgeClass}">${row.action || ''}</span></td>
+            <td>${row.client_ip || ''}</td>
+            <td>${new Date(row.event_ts).toLocaleString()}</td>
+          `;
+          alertBody.appendChild(tr);
+        }
+        lastRefreshedEl.textContent = 'Last refreshed: ' + new Date().toLocaleTimeString();
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    async function loadMetrics() {
+      try {
+        const data = await fetchJSON('/api/metrics');
+        totalAlertsEl.textContent = data.total ?? '0';
+
+        actorListEl.innerHTML = '';
+        for (const row of data.byActor || []) {
+          const li = document.createElement('li');
+          li.textContent = `${row.actor || 'unknown'} — ${row.count} alert(s)`;
+          actorListEl.appendChild(li);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    async function simulateRead() {
+      await fetchJSON('/simulate/decoy-read', {
+        method: 'GET',
+        headers: { 'x-actor': 'curious_attacker' }
+      });
+      await refreshAll();
+    }
+
+    async function simulateWrite() {
+      await fetchJSON('/simulate/decoy-write', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-actor': 'evil_actor' },
+        body: JSON.stringify({
+          full_name: 'Evil User',
+          ssn_dummy: '999-99-9999',
+          salary_dummy: 12345
+        })
+      });
+      await refreshAll();
+    }
+
+    async function simulateHidden() {
+      await fetch('/admin/maintenance/export_all', {
+        method: 'GET',
+        headers: { 'x-actor': 'attacker' }
+      });
+      await refreshAll();
+    }
+
+    async function refreshAll() {
+      await Promise.all([loadAlerts(), loadMetrics()]);
+    }
+
+    // initial load + auto-refresh every 5s
+    refreshAll();
+    setInterval(refreshAll, 5000);
+  </script>
+</body>
+</html>
