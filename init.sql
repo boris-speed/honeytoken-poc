@@ -28,17 +28,17 @@ CREATE TABLE IF NOT EXISTS security.honey_alerts (
     event_ts    timestamptz DEFAULT now()
 );
 
--- function to log an INSERT into alerts table
+-- security schema alert trigger funtion + INSERT into alerts table
 CREATE OR REPLACE FUNCTION security.log_decoy_write()
 RETURNS trigger AS $$
 BEGIN
   INSERT INTO security.honey_alerts(actor, client_ip, resource, action, details)
   VALUES (
-    current_user,
-    inet_client_addr()::text,
-    'decoy.sensitive_backup',
-    TG_OP,
-    jsonb_build_object(
+    current_user, -- attacker DB user (either compromised or created)
+    inet_client_addr()::text, -- attacker IP address
+    'decoy.sensitive_backup', -- resource accessed
+    TG_OP, -- operation type
+    jsonb_build_object( -- details about the decoy row accessed
       'row_id', NEW.id,
       'full_name', NEW.full_name,
       'ssn_dummy', NEW.ssn_dummy,
@@ -52,5 +52,5 @@ $$ LANGUAGE plpgsql;
 DROP TRIGGER IF EXISTS trg_log_decoy_write ON decoy.sensitive_backup;
 
 CREATE TRIGGER trg_log_decoy_write
-AFTER INSERT ON decoy.sensitive_backup
+AFTER INSERT or SELECT or MODIFY ON decoy.sensitive_backup
 FOR EACH ROW EXECUTE FUNCTION security.log_decoy_write();
