@@ -127,3 +127,5 @@ DROP TRIGGER IF EXISTS trg_log_decoy_write ON decoy.sensitive_backup;
 CREATE TRIGGER trg_log_decoy_write
 AFTER INSERT ON decoy.sensitive_backup
 FOR EACH ROW EXECUTE FUNCTION security.log_decoy_write();
+
+-- test commit
