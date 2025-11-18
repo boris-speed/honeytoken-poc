@@ -7,3 +7,5 @@ Benjamin Rader & Boris Speed
 -> exposes port 3000
 
 -> use: 'docker compose up --build'
+
+-> after done use: 'docker compose down -v'

@@ -52,5 +52,5 @@ $$ LANGUAGE plpgsql;
 DROP TRIGGER IF EXISTS trg_log_decoy_write ON decoy.sensitive_backup;
 
 CREATE TRIGGER trg_log_decoy_write
-AFTER INSERT or SELECT or UPDATE or DELETE ON decoy.sensitive_backup
+AFTER INSERT OR SELECT OR UPDATE OR DELETE ON decoy.sensitive_backup
 FOR EACH ROW EXECUTE FUNCTION security.log_decoy_write();
