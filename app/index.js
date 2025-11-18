@@ -142,6 +142,12 @@ app.post('/simulate/decoy-write', async (req, res) => {
 
     res.json({ row });
 
+    } catch (err) {
+    console.error('decoy-write error', err);
+    res.status(500).send('error');
+  }
+});
+
 // simulate decoy UPDATE (change an existing fake row)
 app.put('/simulate/decoy-update', async (req, res) => {
   try {
@@ -224,13 +230,6 @@ app.delete('/simulate/decoy-delete', async (req, res) => {
 
   } catch (err) {
     console.error('decoy-delete error', err);
-    res.status(500).send('error');
-  }
-});
-
-
-  } catch (err) {
-    console.error('decoy-write error', err);
     res.status(500).send('error');
   }
 });
