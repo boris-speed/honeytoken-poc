@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS decoy.sensitive_backup (
 
 -- seed one decoy row
 INSERT INTO decoy.sensitive_backup(full_name, ssn_dummy, salary_dummy)
-VALUES ('Janet Decoy', '000-00-0000', 99999.99);
+VALUES ('Janet Decoy', '123-45-6000', 99999.99);
 
 -- security schema & alerts table
 CREATE SCHEMA IF NOT EXISTS security;
@@ -52,5 +52,5 @@ $$ LANGUAGE plpgsql;
 DROP TRIGGER IF EXISTS trg_log_decoy_write ON decoy.sensitive_backup;
 
 CREATE TRIGGER trg_log_decoy_write
-AFTER INSERT or SELECT or MODIFY ON decoy.sensitive_backup
+AFTER INSERT or SELECT or UPDATE or DELETE ON decoy.sensitive_backup
 FOR EACH ROW EXECUTE FUNCTION security.log_decoy_write();
