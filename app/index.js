@@ -142,7 +142,7 @@ app.post('/simulate/decoy-write', async (req, res) => {
 
     res.json({ row });
 
-    // simulate decoy UPDATE (change an existing fake row)
+// simulate decoy UPDATE (change an existing fake row)
 app.put('/simulate/decoy-update', async (req, res) => {
   try {
     // pick a row to update (first one)

@@ -114,17 +114,11 @@
     <div class="card">
       <div class="label">Demo Controls</div>
         <div class="buttons" style="margin-top:0.5rem; flex-wrap: wrap; gap:0.5rem;">
-    <button onclick="simulateRead()">Simulate Decoy SELECT</button>
-    <button onclick="simulateWrite()">Simulate Decoy INSERT</button>
-    <button onclick="simulateUpdate()">Simulate Decoy UPDATE</button>
-    <button onclick="simulateDelete()">Simulate Decoy DELETE</button>
-  </div>
-
-      <div class="small">
-        These buttons call your API endpoints with fake actors
-        (<code>curious_attacker</code>, <code>evil_actor</code>, <code>attacker</code>)
-        so you can generate alerts during a demo.
-      </div>
+          <button onclick="simulateRead()">Simulate Decoy SELECT</button>
+          <button onclick="simulateWrite()">Simulate Decoy INSERT</button>
+          <button onclick="simulateUpdate()">Simulate Decoy UPDATE</button>
+          <button onclick="simulateDelete()">Simulate Decoy DELETE</button>
+        </div>
     </div>
   </div>
 
@@ -212,39 +206,42 @@
     }
 
     async function simulateWrite() {
+      const randomNames = ['Evil User', 'Bad Actor', 'Suspicious Person', 'Data Thief'];
+      const randomSSN = `${Math.floor(Math.random()*900+100)}-${Math.floor(Math.random()*90+10)}-${Math.floor(Math.random()*9000+1000)}`;
+      const randomSalary = Math.floor(Math.random() * 50000) + 50000;
+      
       await fetchJSON('/simulate/decoy-write', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-actor': 'evil_actor' },
         body: JSON.stringify({
-          full_name: 'Evil User',
-          ssn_dummy: '999-99-9999',
-          salary_dummy: 12345
+          full_name: randomNames[Math.floor(Math.random() * randomNames.length)],
+          ssn_dummy: randomSSN,
+          salary_dummy: randomSalary
         })
       });
       await refreshAll();
     }
 
     async function simulateUpdate() {
-  await fetch('/simulate/decoy-update', {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-actor': 'evil_actor'
+      await fetch('/simulate/decoy-update', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-actor': 'evil_actor'
+        }
+      });
+      await refreshAll();
     }
-  });
-  await refreshAll();
-}
 
-async function simulateDelete() {
-  await fetch('/simulate/decoy-delete', {
-    method: 'DELETE',
-    headers: {
-      'x-actor': 'evil_actor'
+    async function simulateDelete() {
+      await fetch('/simulate/decoy-delete', {
+        method: 'DELETE',
+        headers: {
+          'x-actor': 'evil_actor'
+        }
+      });
+      await refreshAll();
     }
-  });
-  await refreshAll();
-}
-
 
     async function simulateHidden() {
       await fetch('/admin/maintenance/export_all', {
