@@ -6,14 +6,13 @@ const path = require('path');
 const app = express();
 app.use(bodyParser.json());
 
-// static files (dashboard)
 app.use(express.static(path.join(__dirname, 'public')));
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL || 'postgres://demo:demopw@localhost:5432/demo'
 });
 
-// helper to insert honey events
+// This essentially allows logs which option is being chosen. 
 async function logHoneyEvent({ actor, ip, resource, action, details }) {
   const q = `
     INSERT INTO security.honey_alerts(actor, client_ip, resource, action, details)
@@ -31,7 +30,7 @@ async function logHoneyEvent({ actor, ip, resource, action, details }) {
 
 // ---------- API ENDPOINTS ----------
 
-// 1) JSON: list of alerts (for dashboard table)
+// This is used for the dashboard table. It gives us a list of our alerts. 
 app.get('/api/alerts', async (req, res) => {
   try {
     const { rows } = await pool.query(
@@ -47,7 +46,7 @@ app.get('/api/alerts', async (req, res) => {
   }
 });
 
-// 2) JSON: metrics (total count + counts per actor)
+// Gives us the number, basically telling us which # of attack this is. 
 app.get('/api/metrics', async (req, res) => {
   try {
     const totalResult = await pool.query(
@@ -69,9 +68,9 @@ app.get('/api/metrics', async (req, res) => {
   }
 });
 
-// ---------- HONEYTOKEN ENDPOINTS (same as before) ----------
+// admin, insert, and select code will be below. 
 
-// hidden endpoint (never used by legit users)
+// 
 app.get('/admin/maintenance/export_all', async (req, res) => {
   try {
     await logHoneyEvent({
@@ -87,7 +86,7 @@ app.get('/admin/maintenance/export_all', async (req, res) => {
   res.status(404).send('Not found');
 });
 
-// simulate decoy SELECT via app
+// This allows us to simulate the 'select' decoy. 
 app.get('/simulate/decoy-read', async (req, res) => {
   try {
     const result = await pool.query(
@@ -107,30 +106,50 @@ app.get('/simulate/decoy-read', async (req, res) => {
   }
 });
 
-// simulate decoy INSERT (DB trigger will also log)
+// This allows us to simulate the 'insert' decoy. 
 app.post('/simulate/decoy-write', async (req, res) => {
   try {
     const { full_name, ssn_dummy, salary_dummy } = req.body;
+
     const q = `
       INSERT INTO decoy.sensitive_backup(full_name, ssn_dummy, salary_dummy)
       VALUES($1,$2,$3)
       RETURNING *
     `;
-    const r = await pool.query(q, [
+    
+    // inserts a fake record
+    const result = await pool.query(q, [
       full_name || 'Evil User',
       ssn_dummy || '999-99-9999',
       salary_dummy || 12345
     ]);
-    res.json({ row: r.rows[0] });
+
+    const row = result.rows[0];
+
+    // logs the insert
+    await logHoneyEvent({
+      actor: req.get('x-actor') || 'evil_actor',
+      ip: req.ip,
+      resource: 'decoy.sensitive_backup',
+      action: 'INSERT',
+      details: {
+        id: row.id,
+        full_name: row.full_name,
+        ssn_dummy: row.ssn_dummy,
+        salary_dummy: row.salary_dummy
+      }
+    });
+
+    res.json({ row });
+
   } catch (err) {
-    console.error(err);
+    console.error('decoy-write error', err);
     res.status(500).send('error');
   }
 });
 
-// ---------- ROUTES FOR BROWSER ----------
 
-// dashboard (root)
+// This allows our dashboard to function as it should!
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
