@@ -113,11 +113,13 @@
 
     <div class="card">
       <div class="label">Demo Controls</div>
-      <div class="buttons" style="margin-top:0.5rem;">
-        <button onclick="simulateRead()">Simulate Decoy SELECT</button>
-        <button onclick="simulateWrite()">Simulate Decoy INSERT</button>
-        <button class="secondary" onclick="simulateHidden()">Hit Hidden Admin Endpoint</button>
-      </div>
+        <div class="buttons" style="margin-top:0.5rem; flex-wrap: wrap; gap:0.5rem;">
+    <button onclick="simulateRead()">Simulate Decoy SELECT</button>
+    <button onclick="simulateWrite()">Simulate Decoy INSERT</button>
+    <button onclick="simulateUpdate()">Simulate Decoy UPDATE</button>
+    <button onclick="simulateDelete()">Simulate Decoy DELETE</button>
+  </div>
+
       <div class="small">
         These buttons call your API endpoints with fake actors
         (<code>curious_attacker</code>, <code>evil_actor</code>, <code>attacker</code>)
@@ -221,6 +223,28 @@
       });
       await refreshAll();
     }
+
+    async function simulateUpdate() {
+  await fetch('/simulate/decoy-update', {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-actor': 'evil_actor'
+    }
+  });
+  await refreshAll();
+}
+
+async function simulateDelete() {
+  await fetch('/simulate/decoy-delete', {
+    method: 'DELETE',
+    headers: {
+      'x-actor': 'evil_actor'
+    }
+  });
+  await refreshAll();
+}
+
 
     async function simulateHidden() {
       await fetch('/admin/maintenance/export_all', {
